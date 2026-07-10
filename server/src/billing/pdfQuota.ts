@@ -31,3 +31,12 @@ export async function getPdfExportUsage(
     resetAt: active ? data!.reset_at : null,
   }
 }
+
+// Returns the export slot the limiter consumed upstream when the export fails
+// before a PDF is delivered — a failed export must not count against the quota.
+export async function refundPdfExport(userId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('refund_api_rate_limit', {
+    p_key: `pdf-export:${userId}`,
+  })
+  if (error) console.error('PDF export refund failed', error)
+}

@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
+    "target": "ES2022",
+    // nodenext keeps CommonJS output but preserves dynamic import() calls,
+    // which commonjs would downlevel to require() — breaking ESM-only deps
+    // (puppeteer-core, pdfjs-dist) on runtimes without require(esm) support.
+    "module": "nodenext",
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
