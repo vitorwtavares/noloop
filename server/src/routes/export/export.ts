@@ -3,6 +3,7 @@ import { getBrowser } from '../../utils/browser'
 import { getSupabase } from '../../middleware/auth'
 import { createRateLimitMiddleware } from '../../middleware/rateLimit'
 import { sendPlanLimit } from '../../billing/limits'
+import { refundPdfExport } from '../../billing/pdfQuota'
 import {
   normalizeTokenKey,
   tiptapToHtml,
@@ -53,19 +54,22 @@ router.post('/cover-letter/:variation', pdfLimiter, async (req, res) => {
   ])
 
   if (templateError) {
+    await refundPdfExport(req.userId!)
     res.status(500).json({ error: templateError.message })
     return
   }
 
   if (!template?.content) {
+    await refundPdfExport(req.userId!)
     res.status(404).json({ error: 'cover letter content not found' })
     return
   }
 
-  // Block exporting a variation archived behind a downgrade, even though its
-  // quota slot was already consumed upstream.
   const { plan, limits } = req.entitlement!
   if (template.archived_at) {
+    // The limiter already counted this request; give the slot back since the
+    // archived variation blocks the export.
+    await refundPdfExport(req.userId!)
     sendPlanLimit(
       res,
       'coverLetterVariations',
@@ -76,6 +80,7 @@ router.post('/cover-letter/:variation', pdfLimiter, async (req, res) => {
   }
 
   if (tokensError) {
+    await refundPdfExport(req.userId!)
     res.status(500).json({ error: tokensError.message })
     return
   }
@@ -136,6 +141,7 @@ ${bodyHtml}
     res.send(Buffer.from(pdf))
   } catch (err) {
     console.error('PDF generation failed', err)
+    await refundPdfExport(req.userId!)
     res.status(500).json({ error: 'PDF generation failed' })
   } finally {
     await page?.close()
