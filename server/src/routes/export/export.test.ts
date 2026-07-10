@@ -19,11 +19,11 @@ vi.mock('../../utils/browser', () => ({
   getBrowser: vi.fn(),
 }))
 
-describe('export route limits', () => {
-  it('configures a per-day PDF export limiter tagged as a plan limit', async () => {
-    const router = await import('.')
+import exportRouter from '.'
 
-    expect(router.default).toBeDefined()
+describe('export route limits', () => {
+  it('configures a per-day PDF export limiter tagged as a plan limit', () => {
+    expect(exportRouter).toBeDefined()
     expect(mocks.createRateLimitMiddleware).toHaveBeenCalledWith(
       expect.objectContaining({
         keyPrefix: 'pdf-export',
@@ -35,9 +35,7 @@ describe('export route limits', () => {
     )
   })
 
-  it('resolves the daily limit from the caller’s plan entitlement', async () => {
-    await import('.')
-
+  it('resolves the daily limit from the caller’s plan entitlement', () => {
     const options = mocks.createRateLimitMiddleware.mock.calls[0][0] as {
       limit: (req: unknown) => number
     }
