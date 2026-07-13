@@ -4,6 +4,7 @@ dist/
 .env
 .env.local
 .env.prod
+server/src/routes/scanner/filters.ts
 .DS_Store
 .pnpm-store/
 .cache/

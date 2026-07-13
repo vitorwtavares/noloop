@@ -16,6 +16,7 @@ import skillsRouter from './routes/skills'
 import locationsRouter from './routes/locations'
 import trackerViewsRouter from './routes/trackerViews'
 import billingRouter from './routes/billing'
+import scannerRouter from './routes/scanner'
 import { handleStripeWebhook } from './routes/billing/webhook'
 
 const app = express()
@@ -57,5 +58,6 @@ app.use('/api/skills', skillsRouter)
 app.use('/api/locations', locationsRouter)
 app.use('/api/tracker/views', trackerViewsRouter)
 app.use('/api/billing', billingRouter)
+app.use('/api/scanner', scannerRouter)
 
 export default app
