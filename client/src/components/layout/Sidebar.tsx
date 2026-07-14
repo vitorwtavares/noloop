@@ -7,6 +7,7 @@ import {
   CalendarDays,
   LogOut,
   FileText,
+  Radar,
   Settings,
   Sparkles,
   PanelLeftClose,
@@ -47,6 +48,12 @@ const navItems = [
     to: '/tracker',
     label: 'Applications',
     icon: CalendarDays,
+    disabled: false,
+  },
+  {
+    to: '/scanner',
+    label: 'Scanner',
+    icon: Radar,
     disabled: false,
   },
 ]

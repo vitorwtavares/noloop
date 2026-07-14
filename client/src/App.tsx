@@ -5,6 +5,7 @@ import QuickCopy from './pages/QuickCopy'
 import CoverLetter from './pages/CoverLetter'
 import AnswerBank from './pages/AnswerBank'
 import ApplicationTracker from './pages/ApplicationTracker'
+import Scanner from './pages/Scanner'
 import Settings from './pages/Settings'
 import { AccountSettings } from './components/settings/AccountSettings'
 import { BillingSettings } from './components/settings/BillingSettings'
@@ -52,6 +53,7 @@ export default function App() {
                     <Route path="/cover-letter" element={<CoverLetter />} />
                     <Route path="/answer-bank" element={<AnswerBank />} />
                     <Route path="/tracker" element={<ApplicationTracker />} />
+                    <Route path="/scanner" element={<Scanner />} />
                     <Route path="/settings" element={<Settings />}>
                       <Route
                         index
