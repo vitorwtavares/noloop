@@ -21,6 +21,29 @@ import { Button } from '@/components/ui/button'
 
 const JOB_HIGHLIGHT_MS = 700
 
+function cooldownRetryUntil(
+  completedAt: string | null | undefined,
+  cooldownHours: number,
+): number | null {
+  if (!completedAt || cooldownHours <= 0) return null
+
+  const completedMs = Date.parse(completedAt)
+  if (Number.isNaN(completedMs)) return null
+
+  return completedMs + cooldownHours * 3_600_000
+}
+
+function activeRetryUntil(
+  now: number,
+  ...candidates: Array<number | null | undefined>
+): number | null {
+  const active = candidates.filter(
+    (value): value is number =>
+      value !== null && value !== undefined && value > now,
+  )
+  if (active.length === 0) return null
+  return Math.max(...active)
+}
 function formatRetryAfter(seconds: number): string {
   if (seconds <= 0) return 'soon'
   const hours = Math.floor(seconds / 3600)
@@ -35,7 +58,7 @@ function formatScanCompleteSummary(
 ): string {
   const jobLabel = jobsEmitted === 1 ? 'job' : 'jobs'
   const errorLabel = errorsCount === 1 ? 'error' : 'errors'
-  return `Scan complete — ${jobsEmitted} new ${jobLabel} found (${errorsCount} ${errorLabel})`
+  return `Scan complete: ${jobsEmitted} new ${jobLabel} found (${errorsCount} ${errorLabel})`
 }
 
 function workStyleFromScanner(
@@ -57,6 +80,7 @@ export default function Scanner() {
   )
   const [importingUrl, setImportingUrl] = useState<string | null>(null)
   const [liveScanStatus, setLiveScanStatus] = useState<string | null>(null)
+  const [liveCompletedAt, setLiveCompletedAt] = useState<string | null>(null)
   const [retryUntil, setRetryUntil] = useState<number | null>(null)
   const [retryTick, setRetryTick] = useState(() => Date.now())
   const abortRef = useRef<AbortController | null>(null)
@@ -79,10 +103,25 @@ export default function Scanner() {
   const scanStatus = usePersistedSnapshot
     ? (snapshot?.summary ?? null)
     : liveScanStatus
+  const scanCompletedAt = usePersistedSnapshot
+    ? (snapshot?.completed_at ?? null)
+    : (liveCompletedAt ?? snapshot?.completed_at ?? null)
+  const snapshotCooldownUntil = useMemo(
+    () =>
+      cooldownRetryUntil(
+        snapshot?.completed_at,
+        snapshot?.scan_cooldown_hours ?? 0,
+      ),
+    [snapshot?.completed_at, snapshot?.scan_cooldown_hours],
+  )
+  const effectiveRetryUntil = useMemo(
+    () => activeRetryUntil(retryTick, retryUntil, snapshotCooldownUntil),
+    [retryTick, retryUntil, snapshotCooldownUntil],
+  )
   const retryCountdown =
-    retryUntil === null
+    effectiveRetryUntil === null
       ? null
-      : Math.max(0, Math.ceil((retryUntil - retryTick) / 1000))
+      : Math.max(0, Math.ceil((effectiveRetryUntil - retryTick) / 1000))
 
   const importedUrls = useMemo(() => {
     const urls = new Set<string>()
@@ -99,6 +138,7 @@ export default function Scanner() {
 
     setLiveJobs(snapshot.jobs)
     setLiveScanStatus(snapshot.summary)
+    setLiveCompletedAt(snapshot.completed_at)
   }
 
   const highlightJob = (jobUrl: string) => {
@@ -132,18 +172,18 @@ export default function Scanner() {
   }, [])
 
   useEffect(() => {
-    if (retryUntil === null) return
+    if (effectiveRetryUntil === null) return
 
     const intervalId = window.setInterval(() => {
       const now = Date.now()
       setRetryTick(now)
-      if (now >= retryUntil) {
+      if (now >= effectiveRetryUntil) {
         setRetryUntil(null)
       }
     }, 1000)
 
     return () => window.clearInterval(intervalId)
-  }, [retryUntil])
+  }, [effectiveRetryUntil])
 
   const handleEvent = (event: ScannerSseEvent) => {
     switch (event.event) {
@@ -184,6 +224,12 @@ export default function Scanner() {
         setLiveScanStatus(
           formatScanCompleteSummary(data.jobs_emitted, data.errors_count),
         )
+        setLiveCompletedAt(new Date().toISOString())
+        if ((snapshot?.scan_cooldown_hours ?? 0) > 0) {
+          const now = Date.now()
+          setRetryTick(now)
+          setRetryUntil(now + (snapshot?.scan_cooldown_hours ?? 0) * 3_600_000)
+        }
         void queryClient.invalidateQueries({
           queryKey: ['scanner', 'last-scan'],
         })
@@ -203,6 +249,7 @@ export default function Scanner() {
     setLiveJobs([])
     setHighlightedJobUrls(new Set())
     setLiveScanStatus(null)
+    setLiveCompletedAt(null)
 
     try {
       await startScannerScan(handleEvent, controller.signal)
@@ -259,9 +306,15 @@ export default function Scanner() {
     }
   }
 
-  const scanDisabled =
-    isScanning || (retryCountdown !== null && retryCountdown > 0)
   const isLoadingLastScan = lastScanQuery.isPending && !isScanning
+  const scanDisabled =
+    isScanning ||
+    isLoadingLastScan ||
+    (retryCountdown !== null && retryCountdown > 0)
+  const scanButtonLabel =
+    retryCountdown !== null && retryCountdown > 0
+      ? `Try again in ${formatRetryAfter(retryCountdown)}`
+      : 'Scan for new jobs'
 
   return (
     <div className="flex-1 overflow-y-auto px-16 pt-16 pb-12 max-[1599px]:py-12">
@@ -269,29 +322,45 @@ export default function Scanner() {
         title="Scanner"
         subtitle="Scan tracked company boards for new roles that match your profile."
         right={
-          <Button type="button" onClick={startScan} disabled={scanDisabled}>
-            {isScanning ? (
-              <Loader2 className="animate-spin" data-icon="inline-start" />
+          <Button
+            type="button"
+            onClick={startScan}
+            disabled={scanDisabled}
+            aria-busy={isLoadingLastScan}
+            aria-label={isLoadingLastScan ? 'Loading scanner' : scanButtonLabel}
+            className="min-w-[12.5rem] justify-center"
+          >
+            {isLoadingLastScan ? (
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            ) : isScanning ? (
+              <>
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+                Scanning…
+              </>
             ) : (
-              <Radar data-icon="inline-start" />
+              <>
+                <Radar data-icon="inline-start" />
+                {scanButtonLabel}
+              </>
             )}
-            {isScanning
-              ? 'Scanning…'
-              : retryCountdown
-                ? `Try again in ${formatRetryAfter(retryCountdown)}`
-                : 'Scan for new jobs'}
           </Button>
         }
       />
 
       <ScanStatusPanel
         status={scanStatus}
+        completedAt={scanCompletedAt}
         isLoading={isLoadingLastScan}
         isScanning={isScanning}
       />
 
       <section>
-        <h2 className="mb-3 text-lg font-medium">Jobs found</h2>
+        <div className="mb-3 flex items-center gap-1.5">
+          <h2 className="text-lg font-medium">Jobs found</h2>
+          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-[6px] bg-brand px-1.5 py-px font-mono text-[12px] leading-[1] font-medium text-brand-foreground">
+            {jobs.length}
+          </span>
+        </div>
         <ScanResultsTable
           jobs={jobs}
           importedUrls={importedUrls}
