@@ -36,6 +36,7 @@ export type LastScanSnapshot = {
   scan_id: string | null
   summary: string | null
   completed_at: string | null
+  scan_cooldown_hours: number
   jobs: ScannerJob[]
   activity: ScanActivityRecord[]
 }
