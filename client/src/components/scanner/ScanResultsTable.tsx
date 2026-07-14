@@ -1,7 +1,10 @@
-import { Loader2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ScannerJob } from '@/api/scanner'
-import { TH } from '@/components/tracker/styles'
+import {
+  SCAN_TABLE_BODY_CELL,
+  SCAN_TABLE_HEAD_CELL,
+} from '@/components/scanner/scanTableStyles'
 import { cn } from '@/lib/utils'
 import { ScanTableSkeleton } from '@/components/scanner/ScanTableSkeleton'
 
@@ -44,16 +47,16 @@ export function ScanResultsTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
       <table className="w-full min-w-[720px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-border-subtle bg-background">
-            <th className={`${TH} px-4`}>Company</th>
-            <th className={`${TH} px-4`}>Role</th>
-            <th className={`${TH} px-4`}>Location</th>
-            <th className={`${TH} px-4`}>Tier</th>
-            <th className={`${TH} px-4`}>Source</th>
-            <th className={`${TH} px-4`}>Actions</th>
+          <tr className="border-b border-border-subtle">
+            <th className={SCAN_TABLE_HEAD_CELL}>Company</th>
+            <th className={SCAN_TABLE_HEAD_CELL}>Role</th>
+            <th className={SCAN_TABLE_HEAD_CELL}>Location</th>
+            <th className={SCAN_TABLE_HEAD_CELL}>Tier</th>
+            <th className={SCAN_TABLE_HEAD_CELL}>Source</th>
+            <th className={SCAN_TABLE_HEAD_CELL}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -70,8 +73,8 @@ export function ScanResultsTable({
                   isHighlighted && 'animate-scan-job-enter',
                 )}
               >
-                <td className="px-4 py-3">{job.company_name}</td>
-                <td className="px-4 py-3">
+                <td className={SCAN_TABLE_BODY_CELL}>{job.company_name}</td>
+                <td className={SCAN_TABLE_BODY_CELL}>
                   <a
                     href={job.job_url}
                     target="_blank"
@@ -81,16 +84,21 @@ export function ScanResultsTable({
                     {job.job_name}
                   </a>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className={`${SCAN_TABLE_BODY_CELL} text-muted-foreground`}>
                   {job.location ?? '—'}
                 </td>
-                <td className="px-4 py-3">{job.tier ?? '—'}</td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className={SCAN_TABLE_BODY_CELL}>{job.tier ?? '—'}</td>
+                <td className={`${SCAN_TABLE_BODY_CELL} text-muted-foreground`}>
                   {job.source}
                 </td>
-                <td className="px-4 py-3">
+                <td className={SCAN_TABLE_BODY_CELL}>
                   {imported ? (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Check
+                        size={14}
+                        className="shrink-0 text-brand"
+                        aria-hidden="true"
+                      />
                       In tracker
                     </span>
                   ) : (
