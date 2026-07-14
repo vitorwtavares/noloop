@@ -291,12 +291,26 @@
   }
 }
 
+@keyframes scan-job-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+    background-color: var(--brand-soft);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+
 @theme inline {
   --animate-bubble-in: bubble-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)
     forwards;
   --animate-bubble-out: bubble-out 0.26s ease-in forwards;
   --animate-icon-pop: icon-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   --animate-icon-fall: icon-fall 0.7s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  --animate-scan-job-enter: scan-job-enter 0.55s ease-out forwards;
 }
 
 @layer base {
