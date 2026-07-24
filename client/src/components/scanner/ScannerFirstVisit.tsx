@@ -12,6 +12,7 @@ import { FilterChipEditor } from '@/components/scanner/FilterChipEditor'
 import { ScannerCompaniesModal } from '@/components/scanner/ScannerCompaniesModal'
 import { ScannerReadinessStrip } from '@/components/scanner/ScannerReadinessStrip'
 import { ScannerStatusIcon } from '@/components/scanner/ScannerStatusIcon'
+import { scannerFiltersAreValid } from '@/components/scanner/scannerUtils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 
@@ -48,10 +49,6 @@ function initialEnabledIds(companies: ScannerSetupCompany[]): Set<string> {
       .filter((company) => company.careers_url?.trim())
       .map((company) => company.id),
   )
-}
-
-function filtersAreValid(filters: ScannerFilters): boolean {
-  return filters.title.positive.length > 0 && filters.location.length > 0
 }
 
 function RequiredMark() {
@@ -113,7 +110,7 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
   })
 
   const currentFilters = buildFilters()
-  const filtersValid = filtersAreValid(currentFilters)
+  const filtersValid = scannerFiltersAreValid(currentFilters)
 
   const handleSaveFilters = async () => {
     if (!filtersValid) {

@@ -220,6 +220,18 @@ router.post('/scan', async (req, res) => {
       .json({ error: 'Complete scanner setup before scanning' })
   }
 
+  // Empty filters would match every role at every company, so a scan needs at
+  // least one positive title keyword and one location.
+  if (
+    preferences.filters.title.positive.length === 0 ||
+    preferences.filters.location.length === 0
+  ) {
+    return res.status(400).json({
+      error:
+        'Add at least one positive keyword and one location before scanning',
+    })
+  }
+
   const { data, error } = await getSupabase()
     .from('applications')
     .select('company_name, job_name, job_url, careers_url, scanner_enabled')

@@ -1,4 +1,17 @@
+import type { ScannerFilters } from '@/api/scanner'
+
 export const JOB_HIGHLIGHT_MS = 700
+
+export const EMPTY_SCANNER_FILTERS: ScannerFilters = {
+  title: { positive: [], negative: [] },
+  location: [],
+}
+
+// A scan needs something to match on and somewhere to match it, so both are
+// required before the scan button unlocks (also enforced server-side).
+export function scannerFiltersAreValid(filters: ScannerFilters): boolean {
+  return filters.title.positive.length > 0 && filters.location.length > 0
+}
 
 export function cooldownRetryUntil(
   completedAt: string | null | undefined,
