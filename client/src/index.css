@@ -304,7 +304,18 @@
   }
 }
 
+@keyframes scanner-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
 @theme inline {
+  --animate-scanner-pulse: scanner-pulse 1.3s ease-in-out infinite;
   --animate-bubble-in: bubble-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)
     forwards;
   --animate-bubble-out: bubble-out 0.26s ease-in forwards;

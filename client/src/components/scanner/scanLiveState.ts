@@ -100,9 +100,93 @@ export function parseCompleteActivityDetail(detail: string): {
   }
 }
 
+export type ScanFinishedCounts = {
+  onBoard: number
+  filtered: number
+  matched: number
+  newJobs: number
+}
+
+/** `null` means the detail is an error message rather than a count summary. */
+export function parseFinishedDetailCounts(
+  detail: string,
+): ScanFinishedCounts | null {
+  const match = detail.match(
+    /^(\d+) on board · (\d+) filtered · (\d+) matched · (\d+) new/,
+  )
+  if (!match) return null
+
+  return {
+    onBoard: Number(match[1]),
+    filtered: Number(match[2]),
+    matched: Number(match[3]),
+    newJobs: Number(match[4]),
+  }
+}
+
 export function parseBoardCountFromFinishedDetail(detail: string): number {
-  const match = detail.match(/^(\d+) on board/)
-  return match ? Number(match[1]) : 0
+  return parseFinishedDetailCounts(detail)?.onBoard ?? 0
+}
+
+export type ScanRailEntryStatus = 'running' | 'finished' | 'skipped' | 'error'
+
+export type ScanRailEntry = {
+  companyName: string
+  status: ScanRailEntryStatus
+  detail: string
+  counts: ScanFinishedCounts | null
+}
+
+/**
+ * Collapses the raw activity stream into one row per company, the way the
+ * rail displays it: a company that started and then finished is a single
+ * entry, not two. Scan-level rows (synced, scan started, complete) are left
+ * out because the rail lists boards, not lifecycle events.
+ */
+export function toScanRailEntries(
+  activity: ScanActivityRecord[],
+): ScanRailEntry[] {
+  const byCompany = new Map<string, ScanRailEntry>()
+
+  for (const record of activity) {
+    if (record.company_name === '—') continue
+    if (record.status === 'synced' || record.status === 'complete') continue
+
+    if (record.status === 'started') {
+      if (!byCompany.has(record.company_name)) {
+        byCompany.set(record.company_name, {
+          companyName: record.company_name,
+          status: 'running',
+          detail: record.detail,
+          counts: null,
+        })
+      }
+      continue
+    }
+
+    const counts =
+      record.status === 'finished'
+        ? parseFinishedDetailCounts(record.detail)
+        : null
+
+    let status: ScanRailEntryStatus
+    if (record.status === 'skipped') {
+      status = 'skipped'
+    } else if (counts === null) {
+      status = 'error'
+    } else {
+      status = 'finished'
+    }
+
+    byCompany.set(record.company_name, {
+      companyName: record.company_name,
+      status,
+      detail: record.detail,
+      counts,
+    })
+  }
+
+  return [...byCompany.values()]
 }
 
 export function formatScanElapsed(seconds: number): string {

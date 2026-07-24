@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { Loader2, Radar } from 'lucide-react'
 import type { ScannerJob } from '@/api/scanner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ScannerActivityRail } from '@/components/scanner/ScannerActivityRail'
 import { ScanResultsTable } from '@/components/scanner/ScanResultsTable'
 import { ScanStatusCard } from '@/components/scanner/ScanStatusCard'
+import { ScannerToolbar } from '@/components/scanner/ScannerToolbar'
 import type { ScanLiveSession } from '@/components/scanner/scanLiveState'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 type Props = {
   jobs: ScannerJob[]
@@ -37,6 +41,16 @@ export function ScannerMainView({
   onStartScan,
   onImport,
 }: Props) {
+  const [railOpen, setRailOpen] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
+  const showRail = railOpen || isScanning
+
+  const handleStartScan = () => {
+    setRailOpen(true)
+    onStartScan()
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-16 pb-6 max-[1599px]:py-12">
       <PageHeader
@@ -45,7 +59,7 @@ export function ScannerMainView({
         right={
           <Button
             type="button"
-            onClick={onStartScan}
+            onClick={handleStartScan}
             disabled={scanDisabled}
             aria-busy={isLoadingLastScan}
             aria-label={isLoadingLastScan ? 'Loading scanner' : scanButtonLabel}
@@ -77,13 +91,23 @@ export function ScannerMainView({
         scanLiveSession={scanLiveSession}
       />
 
-      <section>
-        <div className="mb-3 flex items-center gap-1.5">
-          <h2 className="text-lg font-medium">Jobs found</h2>
-          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-[6px] bg-brand px-1.5 py-px font-mono text-[12px] leading-[1] font-medium text-brand-foreground">
-            {jobs.length}
-          </span>
-        </div>
+      <ScannerToolbar
+        jobCount={jobs.length}
+        isScanning={isScanning}
+        railOpen={railOpen}
+        filtersOpen={filtersOpen}
+        onToggleRail={() => setRailOpen((open) => !open)}
+        onToggleFilters={() => setFiltersOpen((open) => !open)}
+      />
+
+      <div
+        className={cn(
+          'grid items-start gap-5',
+          showRail
+            ? 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px]'
+            : 'grid-cols-1',
+        )}
+      >
         <ScanResultsTable
           jobs={jobs}
           importedUrls={importedUrls}
@@ -93,7 +117,14 @@ export function ScannerMainView({
           isScanning={isScanning}
           onImport={onImport}
         />
-      </section>
+
+        {showRail && (
+          <ScannerActivityRail
+            activity={scanLiveSession.activity}
+            isScanning={isScanning}
+          />
+        )}
+      </div>
     </div>
   )
 }
