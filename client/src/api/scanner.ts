@@ -73,6 +73,10 @@ export type CompleteScannerSetupPayload = {
   enabled_application_ids: string[]
 }
 
+export type UpdateScannerCompaniesPayload = {
+  enabled_application_ids: string[]
+}
+
 export class ScanLimitError extends Error {
   retryAfterSeconds: number
 
@@ -236,4 +240,24 @@ export async function completeScannerSetup(
   }
 
   return res.json() as Promise<{ preferences: ScannerPreferences }>
+}
+
+export async function updateScannerCompanies(
+  payload: UpdateScannerCompaniesPayload,
+): Promise<{ companies: ScannerSetupCompany[] }> {
+  const res = await fetch(getApiUrl('/api/scanner/companies'), {
+    method: 'PUT',
+    headers: {
+      ...(await getAuthHeaders()),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Failed to update companies: ${res.status}`)
+  }
+
+  return res.json() as Promise<{ companies: ScannerSetupCompany[] }>
 }

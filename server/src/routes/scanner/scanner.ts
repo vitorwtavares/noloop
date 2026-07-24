@@ -173,6 +173,34 @@ async function fetchUserPreferences(
   }
 }
 
+async function updateScannerEnabledCompanies(
+  userId: string,
+  enabledIds: string[],
+): Promise<{ error: string } | { ok: true }> {
+  const { error: disableError } = await getSupabase()
+    .from('applications')
+    .update({ scanner_enabled: false })
+    .eq('user_id', userId)
+
+  if (disableError) {
+    return { error: disableError.message }
+  }
+
+  if (enabledIds.length > 0) {
+    const { error: enableError } = await getSupabase()
+      .from('applications')
+      .update({ scanner_enabled: true })
+      .eq('user_id', userId)
+      .in('id', enabledIds)
+
+    if (enableError) {
+      return { error: enableError.message }
+    }
+  }
+
+  return { ok: true }
+}
+
 // Proxies POST /v1/scans on joolkit-scanner and streams SSE back to the client.
 router.post('/scan', async (req, res) => {
   const config = scannerConfig()
@@ -401,6 +429,38 @@ router.put('/preferences', async (req, res) => {
   return res.json(body)
 })
 
+router.put('/companies', async (req, res) => {
+  const userId = req.userId!
+  const { enabled_application_ids: enabledIds } = req.body as {
+    enabled_application_ids?: string[]
+  }
+
+  if (!Array.isArray(enabledIds)) {
+    return res.status(400).json({
+      error: 'enabled_application_ids is required',
+    })
+  }
+
+  const companiesResult = await updateScannerEnabledCompanies(
+    userId,
+    enabledIds,
+  )
+  if ('error' in companiesResult) {
+    return res.status(500).json({ error: companiesResult.error })
+  }
+
+  const { data: companies, error } = await getSupabase()
+    .from('applications')
+    .select('id, company_name, careers_url, scanner_enabled')
+    .eq('user_id', userId)
+    .is('archived_at', null)
+    .order('company_name')
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  return res.json({ companies: companies ?? [] })
+})
+
 router.post('/setup', async (req, res) => {
   const config = scannerConfig()
   if (!config) {
@@ -443,25 +503,12 @@ router.post('/setup', async (req, res) => {
 
   const preferences = (await preferencesRes.json()) as Record<string, unknown>
 
-  const { error: disableError } = await getSupabase()
-    .from('applications')
-    .update({ scanner_enabled: false })
-    .eq('user_id', userId)
-
-  if (disableError) {
-    return res.status(500).json({ error: disableError.message })
-  }
-
-  if (enabledIds.length > 0) {
-    const { error: enableError } = await getSupabase()
-      .from('applications')
-      .update({ scanner_enabled: true })
-      .eq('user_id', userId)
-      .in('id', enabledIds)
-
-    if (enableError) {
-      return res.status(500).json({ error: enableError.message })
-    }
+  const companiesResult = await updateScannerEnabledCompanies(
+    userId,
+    enabledIds,
+  )
+  if ('error' in companiesResult) {
+    return res.status(500).json({ error: companiesResult.error })
   }
 
   let completeRes: Response
