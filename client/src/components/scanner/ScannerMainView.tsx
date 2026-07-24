@@ -2,7 +2,7 @@ import { Loader2, Radar } from 'lucide-react'
 import type { ScannerJob } from '@/api/scanner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ScanResultsTable } from '@/components/scanner/ScanResultsTable'
-import { ScanStatusPanel } from '@/components/scanner/ScanStatusPanel'
+import { ScanStatusCard } from '@/components/scanner/ScanStatusCard'
 import type { ScanLiveSession } from '@/components/scanner/scanLiveState'
 import { Button } from '@/components/ui/button'
 
@@ -37,8 +37,6 @@ export function ScannerMainView({
   onStartScan,
   onImport,
 }: Props) {
-  void scanLiveSession
-
   return (
     <div className="flex-1 overflow-y-auto p-16 pb-6 max-[1599px]:py-12">
       <PageHeader
@@ -70,11 +68,13 @@ export function ScannerMainView({
         }
       />
 
-      <ScanStatusPanel
-        status={scanStatus}
-        completedAt={scanCompletedAt}
-        isLoading={isLoadingLastScan}
+      <ScanStatusCard
         isScanning={isScanning}
+        isLoading={isLoadingLastScan}
+        scanStatus={scanStatus}
+        scanCompletedAt={scanCompletedAt}
+        jobCount={jobs.length}
+        scanLiveSession={scanLiveSession}
       />
 
       <section>

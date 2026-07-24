@@ -568,3 +568,14 @@ aside[data-collapsed='true']
   transform: rotate(45deg) translate(-1px, -1px);
   margin: 0 auto;
 }
+
+/* Scanner status card — scanning gradient per wireframe */
+.scanner-status-card--scanning {
+  background-color: var(--card);
+  border-color: var(--brand-border);
+  background-image: linear-gradient(
+    180deg,
+    rgba(74, 140, 240, 0.05),
+    transparent 60%
+  );
+}
