@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import {
   ScanLimitError,
   fetchLastScan,
+  fetchScannerSetup,
   startScannerScan,
   type LastScanSnapshot,
   type ScannerJob,
@@ -17,6 +18,7 @@ import {
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ScanResultsTable } from '@/components/scanner/ScanResultsTable'
 import { ScanStatusPanel } from '@/components/scanner/ScanStatusPanel'
+import { ScannerFirstVisit } from '@/components/scanner/ScannerFirstVisit'
 import { Button } from '@/components/ui/button'
 
 const JOB_HIGHLIGHT_MS = 700
@@ -87,9 +89,14 @@ export default function Scanner() {
   const highlightTimeoutsRef = useRef<Map<string, number>>(new Map())
 
   const { data: applications = [] } = useApplications()
+  const setupQuery = useQuery({
+    queryKey: ['scanner', 'setup'],
+    queryFn: fetchScannerSetup,
+  })
   const lastScanQuery = useQuery({
     queryKey: ['scanner', 'last-scan'],
     queryFn: fetchLastScan,
+    enabled: Boolean(setupQuery.data?.preferences.setup_completed_at),
   })
   const createApplication = useCreateApplication()
 
@@ -316,8 +323,54 @@ export default function Scanner() {
       ? `Try again in ${formatRetryAfter(retryCountdown)}`
       : 'Scan for new jobs'
 
+  const handleSetupComplete = () => {
+    void queryClient.invalidateQueries({ queryKey: ['scanner', 'setup'] })
+    void queryClient.invalidateQueries({ queryKey: ['applications'] })
+  }
+
+  if (setupQuery.isPending) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-16 py-24">
+        <Loader2
+          aria-hidden="true"
+          className="size-6 animate-spin text-muted-foreground"
+        />
+      </div>
+    )
+  }
+
+  if (setupQuery.isError) {
+    const message =
+      setupQuery.error instanceof Error
+        ? setupQuery.error.message
+        : 'Failed to load scanner setup'
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-16 py-24 text-center">
+        <p className="text-sm text-muted-foreground">{message}</p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setupQuery.refetch()}
+        >
+          Try again
+        </Button>
+      </div>
+    )
+  }
+
+  if (!setupQuery.data.preferences.setup_completed_at) {
+    return (
+      <div className="flex-1 overflow-y-auto p-16 pb-6 max-[1599px]:py-12">
+        <ScannerFirstVisit
+          setup={setupQuery.data}
+          onComplete={handleSetupComplete}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className="flex-1 overflow-y-auto px-16 pt-16 pb-12 max-[1599px]:py-12">
+    <div className="flex-1 overflow-y-auto p-16 pb-6 max-[1599px]:py-12">
       <PageHeader
         title="Scanner"
         subtitle="Scan tracked company boards for new roles that match your profile."
