@@ -16,6 +16,34 @@ const EMPTY_SCANNER_FILTERS: ScannerFilters = {
   location: [],
 }
 
+const SCANNER_PROXY_TIMEOUT_MS = 30_000
+
+function scannerProxyTimeoutSignal(signal?: AbortSignal | null): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(SCANNER_PROXY_TIMEOUT_MS)
+  if (!signal) return timeoutSignal
+
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any([signal, timeoutSignal])
+  }
+
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  if (signal.aborted || timeoutSignal.aborted) {
+    controller.abort()
+  } else {
+    signal.addEventListener('abort', abort, { once: true })
+    timeoutSignal.addEventListener('abort', abort, { once: true })
+  }
+  return controller.signal
+}
+
+function scannerFetchErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.name === 'TimeoutError') {
+    return 'Scanner request timed out'
+  }
+  return err instanceof Error ? err.message : 'Scanner request failed'
+}
+
 function scannerConfig() {
   const baseUrl = process.env.SCANNER_BASE_URL?.replace(/\/$/, '')
   const publicKey = process.env.SCANNER_PUBLIC_KEY
@@ -33,6 +61,7 @@ interface ApplicationRow {
   job_name: string | null
   job_url: string | null
   careers_url: string | null
+  scanner_enabled: boolean
 }
 
 function buildScanPayload(
@@ -46,6 +75,7 @@ function buildScanPayload(
   >()
 
   for (const row of rows) {
+    if (!row.scanner_enabled) continue
     if (!row.careers_url?.trim()) continue
     const key = row.company_name.trim().toLowerCase()
     if (!key) continue
@@ -75,13 +105,14 @@ function buildScanPayload(
   }
 }
 
-async function proxyScannerJson(
+async function fetchScanner(
   config: NonNullable<ReturnType<typeof scannerConfig>>,
   path: string,
   init?: RequestInit,
-) {
+): Promise<Response> {
   return fetch(`${config.baseUrl}${path}`, {
     ...init,
+    signal: scannerProxyTimeoutSignal(init?.signal),
     headers: {
       'Content-Type': 'application/json',
       'X-Scanner-Public-Key': config.publicKey,
@@ -89,6 +120,14 @@ async function proxyScannerJson(
       ...init?.headers,
     },
   })
+}
+
+async function proxyScannerJson(
+  config: NonNullable<ReturnType<typeof scannerConfig>>,
+  path: string,
+  init?: RequestInit,
+) {
+  return fetchScanner(config, path, init)
 }
 
 async function fetchUserPreferences(
@@ -105,7 +144,7 @@ async function fetchUserPreferences(
     )
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Scanner request failed',
+      error: scannerFetchErrorMessage(err),
     }
   }
 
@@ -155,7 +194,7 @@ router.post('/scan', async (req, res) => {
 
   const { data, error } = await getSupabase()
     .from('applications')
-    .select('company_name, job_name, job_url, careers_url')
+    .select('company_name, job_name, job_url, careers_url, scanner_enabled')
     .eq('user_id', userId)
     .is('archived_at', null)
 
@@ -169,7 +208,7 @@ router.post('/scan', async (req, res) => {
 
   if (payload.companies.length === 0) {
     return res.status(400).json({
-      error: 'No applications with a careers URL to scan',
+      error: 'No enabled companies with a careers URL to scan',
     })
   }
 
@@ -183,6 +222,7 @@ router.post('/scan', async (req, res) => {
 
   let scannerRes: Response
   try {
+    // SSE scans can run for minutes — only honour client disconnect, not a proxy timeout.
     scannerRes = await fetch(`${config.baseUrl}/v1/scans`, {
       method: 'POST',
       headers: {
@@ -196,8 +236,7 @@ router.post('/scan', async (req, res) => {
     })
   } catch (err) {
     if (abortController.signal.aborted) return
-    const message =
-      err instanceof Error ? err.message : 'Scanner request failed'
+    const message = scannerFetchErrorMessage(err)
     return res.status(502).json({ error: message })
   }
 
@@ -261,18 +300,17 @@ router.get('/last-scan', async (req, res) => {
 
   let scannerRes: Response
   try {
-    scannerRes = await fetch(
-      `${config.baseUrl}/v1/users/${encodeURIComponent(req.userId!)}/last-scan`,
+    scannerRes = await fetchScanner(
+      config,
+      `/v1/users/${encodeURIComponent(req.userId!)}/last-scan`,
       {
         headers: {
-          'X-Scanner-Public-Key': config.publicKey,
-          'X-Scanner-Secret-Key': config.secretKey,
+          Accept: 'application/json',
         },
       },
     )
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Scanner request failed'
+    const message = scannerFetchErrorMessage(err)
     return res.status(502).json({ error: message })
   }
 
@@ -302,8 +340,7 @@ router.get('/setup', async (req, res) => {
       `/v1/users/${encodeURIComponent(userId)}/preferences`,
     )
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Scanner request failed'
+    const message = scannerFetchErrorMessage(err)
     return res.status(502).json({ error: message })
   }
 
@@ -349,8 +386,7 @@ router.put('/preferences', async (req, res) => {
       },
     )
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Scanner request failed'
+    const message = scannerFetchErrorMessage(err)
     return res.status(502).json({ error: message })
   }
 
@@ -394,8 +430,7 @@ router.post('/setup', async (req, res) => {
       },
     )
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Scanner request failed'
+    const message = scannerFetchErrorMessage(err)
     return res.status(502).json({ error: message })
   }
 
@@ -437,8 +472,7 @@ router.post('/setup', async (req, res) => {
       { method: 'POST' },
     )
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Scanner request failed'
+    const message = scannerFetchErrorMessage(err)
     return res.status(502).json({ error: message })
   }
 
