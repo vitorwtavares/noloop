@@ -41,6 +41,38 @@ export type LastScanSnapshot = {
   activity: ScanActivityRecord[]
 }
 
+export type ScannerTitleFilters = {
+  positive: string[]
+  negative: string[]
+}
+
+export type ScannerFilters = {
+  title: ScannerTitleFilters
+  location: string[]
+}
+
+export type ScannerPreferences = ScannerFilters & {
+  setup_completed_at: string | null
+}
+
+export type ScannerSetupCompany = {
+  id: string
+  company_name: string
+  careers_url: string | null
+  scanner_enabled: boolean
+}
+
+export type ScannerSetupResponse = {
+  preferences: ScannerPreferences
+  default_filters: ScannerFilters
+  companies: ScannerSetupCompany[]
+}
+
+export type CompleteScannerSetupPayload = {
+  filters: ScannerFilters
+  enabled_application_ids: string[]
+}
+
 export class ScanLimitError extends Error {
   retryAfterSeconds: number
 
@@ -151,4 +183,57 @@ export async function fetchLastScan(): Promise<LastScanSnapshot> {
   }
 
   return res.json() as Promise<LastScanSnapshot>
+}
+
+export async function fetchScannerSetup(): Promise<ScannerSetupResponse> {
+  const res = await fetch(getApiUrl('/api/scanner/setup'), {
+    headers: await getAuthHeaders(),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Failed to load scanner setup: ${res.status}`)
+  }
+
+  return res.json() as Promise<ScannerSetupResponse>
+}
+
+export async function updateScannerPreferences(
+  filters: ScannerFilters,
+): Promise<ScannerPreferences> {
+  const res = await fetch(getApiUrl('/api/scanner/preferences'), {
+    method: 'PUT',
+    headers: {
+      ...(await getAuthHeaders()),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(filters),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Failed to save preferences: ${res.status}`)
+  }
+
+  return res.json() as Promise<ScannerPreferences>
+}
+
+export async function completeScannerSetup(
+  payload: CompleteScannerSetupPayload,
+): Promise<{ preferences: ScannerPreferences }> {
+  const res = await fetch(getApiUrl('/api/scanner/setup'), {
+    method: 'POST',
+    headers: {
+      ...(await getAuthHeaders()),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Failed to complete setup: ${res.status}`)
+  }
+
+  return res.json() as Promise<{ preferences: ScannerPreferences }>
 }
