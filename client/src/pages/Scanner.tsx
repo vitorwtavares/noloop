@@ -6,6 +6,7 @@ import {
   fetchLastScan,
   fetchScannerSetup,
   type ScannerJob,
+  type ScannerSetupResponse,
 } from '@/api/scanner'
 import {
   useApplications,
@@ -14,7 +15,10 @@ import {
 import { ScannerFirstVisit } from '@/components/scanner/ScannerFirstVisit'
 import { ScannerMainView } from '@/components/scanner/ScannerMainView'
 import { useScannerScan } from '@/components/scanner/useScannerScan'
-import { workStyleFromScanner } from '@/components/scanner/scannerUtils'
+import {
+  scannerFiltersAreValid,
+  workStyleFromScanner,
+} from '@/components/scanner/scannerUtils'
 import { Button } from '@/components/ui/button'
 
 export default function Scanner() {
@@ -114,16 +118,34 @@ export default function Scanner() {
     )
   }
 
+  const savedFilters = {
+    title: setupQuery.data.preferences.title,
+    location: setupQuery.data.preferences.location,
+  }
+  const filtersReady = scannerFiltersAreValid(savedFilters)
+
   return (
     <ScannerMainView
+      savedFilters={savedFilters}
+      onFiltersSaved={(preferences) => {
+        queryClient.setQueryData<ScannerSetupResponse>(
+          ['scanner', 'setup'],
+          (current) => (current ? { ...current, preferences } : current),
+        )
+      }}
       jobs={scan.jobs}
       scanLiveSession={scan.scanLiveSession}
       scanStatus={scan.scanStatus}
       scanCompletedAt={scan.scanCompletedAt}
       isScanning={scan.isScanning}
       isLoadingLastScan={scan.isLoadingLastScan}
-      scanDisabled={scan.scanDisabled}
+      scanDisabled={scan.scanDisabled || !filtersReady}
       scanButtonLabel={scan.scanButtonLabel}
+      scanBlockedReason={
+        filtersReady
+          ? null
+          : 'Add at least one positive keyword and one location in Match filters to scan.'
+      }
       highlightedJobUrls={scan.highlightedJobUrls}
       importedUrls={importedUrls}
       importingUrl={importingUrl}
