@@ -24,7 +24,7 @@ function isDuplicateKeyword(items: string[], value: string): boolean {
   return items.some((item) => normalizeKeyword(item) === normalized)
 }
 
-const filterChipClass = 'h-8 px-2.5 py-0'
+const filterChipClass = 'h-8 rounded-sm px-2.5 py-0'
 
 function ExcludeTag({
   children,
@@ -36,7 +36,7 @@ function ExcludeTag({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-[5px] bg-danger-soft px-2 py-0.5 text-[13px] font-medium whitespace-nowrap text-danger',
+        'inline-flex shrink-0 items-center gap-1 bg-danger-soft px-2 py-0.5 text-[13px] font-medium whitespace-nowrap text-danger',
         filterChipClass,
       )}
     >
