@@ -216,7 +216,11 @@ async function updateScannerCareersUrls(
 
     const { data: updated, error } = await getSupabase()
       .from('applications')
-      .update({ careers_url: careersUrl, updated_at: now })
+      .update({
+        careers_url: careersUrl,
+        scanner_enabled: true,
+        updated_at: now,
+      })
       .eq('id', update.application_id)
       .eq('user_id', userId)
       .select('id')
