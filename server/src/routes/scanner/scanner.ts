@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { getSupabase } from '../../middleware/auth'
+import { normalizeCareersUrl } from '../../utils/careersUrl'
 
 const router = Router()
 
@@ -201,6 +202,44 @@ async function updateScannerEnabledCompanies(
   return { ok: true }
 }
 
+async function updateScannerCareersUrls(
+  userId: string,
+  updates: Array<{ application_id: string; careers_url: string }>,
+): Promise<{ error: string } | { ok: true }> {
+  const now = new Date().toISOString()
+
+  for (const update of updates) {
+    const careersUrl = normalizeCareersUrl(update.careers_url)
+    if (!careersUrl) {
+      return { error: 'Each careers URL must be a valid web address' }
+    }
+
+    const { data: updated, error } = await getSupabase()
+      .from('applications')
+      .update({ careers_url: careersUrl, updated_at: now })
+      .eq('id', update.application_id)
+      .eq('user_id', userId)
+      .select('id')
+      .maybeSingle()
+
+    if (error) return { error: error.message }
+    if (!updated) {
+      return { error: 'One or more applications could not be updated' }
+    }
+  }
+
+  return { ok: true }
+}
+
+async function fetchScannerSetupCompanies(userId: string) {
+  return getSupabase()
+    .from('applications')
+    .select('id, company_name, careers_url, scanner_enabled')
+    .eq('user_id', userId)
+    .is('archived_at', null)
+    .order('company_name')
+}
+
 // Proxies POST /v1/scans on joolkit-scanner and streams SSE back to the client.
 router.post('/scan', async (req, res) => {
   const config = scannerConfig()
@@ -393,12 +432,7 @@ router.get('/setup', async (req, res) => {
 
   const preferences = (await preferencesRes.json()) as Record<string, unknown>
 
-  const { data: companies, error } = await getSupabase()
-    .from('applications')
-    .select('id, company_name, careers_url, scanner_enabled')
-    .eq('user_id', userId)
-    .is('archived_at', null)
-    .order('company_name')
+  const { data: companies, error } = await fetchScannerSetupCompanies(userId)
 
   if (error) return res.status(500).json({ error: error.message })
 
@@ -461,12 +495,46 @@ router.put('/companies', async (req, res) => {
     return res.status(500).json({ error: companiesResult.error })
   }
 
-  const { data: companies, error } = await getSupabase()
-    .from('applications')
-    .select('id, company_name, careers_url, scanner_enabled')
-    .eq('user_id', userId)
-    .is('archived_at', null)
-    .order('company_name')
+  const { data: companies, error } = await fetchScannerSetupCompanies(userId)
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  return res.json({ companies: companies ?? [] })
+})
+
+router.patch('/careers-urls', async (req, res) => {
+  const userId = req.userId!
+  const { updates } = req.body as {
+    updates?: Array<{ application_id?: string; careers_url?: string }>
+  }
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return res.status(400).json({ error: 'updates is required' })
+  }
+
+  for (const update of updates) {
+    if (
+      typeof update.application_id !== 'string' ||
+      typeof update.careers_url !== 'string'
+    ) {
+      return res.status(400).json({
+        error: 'Each update requires application_id and careers_url',
+      })
+    }
+  }
+
+  const careersResult = await updateScannerCareersUrls(
+    userId,
+    updates.map((update) => ({
+      application_id: update.application_id!,
+      careers_url: update.careers_url!,
+    })),
+  )
+  if ('error' in careersResult) {
+    return res.status(400).json({ error: careersResult.error })
+  }
+
+  const { data: companies, error } = await fetchScannerSetupCompanies(userId)
 
   if (error) return res.status(500).json({ error: error.message })
 
