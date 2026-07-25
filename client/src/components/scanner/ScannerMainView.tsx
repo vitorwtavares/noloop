@@ -305,6 +305,7 @@ export function ScannerMainView({
       </div>
 
       <ScannerCompaniesModal
+        key={companiesModalOpen ? [...enabledIds].sort().join(',') : 'closed'}
         open={companiesModalOpen}
         companies={companies}
         enabledIds={enabledIds}

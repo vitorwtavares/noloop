@@ -294,6 +294,7 @@ export function ScannerFirstVisit({
       </section>
 
       <ScannerCompaniesModal
+        key={companiesModalOpen ? [...enabledIds].sort().join(',') : 'closed'}
         open={companiesModalOpen}
         companies={companies}
         enabledIds={enabledIds}

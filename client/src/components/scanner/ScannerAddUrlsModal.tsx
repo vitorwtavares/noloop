@@ -188,8 +188,9 @@ export function ScannerAddUrlsModal({
         </div>
 
         <DialogFooter className="flex-row items-center border-t border-border-subtle px-6 py-4 sm:justify-between">
-          <p className="text-[13px] text-muted-foreground">
-            Companies with a saved URL are scanned next time.
+          <p className="max-w-[320px] text-[13px] text-muted-foreground">
+            Companies with added URLs are automatically added to the companies
+            to scan list.
           </p>
           <div className="flex gap-2">
             <Button

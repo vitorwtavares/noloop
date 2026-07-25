@@ -31,6 +31,14 @@ export function ScannerCompaniesModal({
 }: Props) {
   const [draftEnabledIds, setDraftEnabledIds] = useState(enabledIds)
 
+  const isDirty = useMemo(() => {
+    if (draftEnabledIds.size !== enabledIds.size) return true
+    for (const id of draftEnabledIds) {
+      if (!enabledIds.has(id)) return true
+    }
+    return false
+  }, [draftEnabledIds, enabledIds])
+
   const selectable = useMemo(
     () => companies.filter((company) => Boolean(company.careers_url?.trim())),
     [companies],
@@ -153,7 +161,9 @@ export function ScannerCompaniesModal({
             </Button>
             <Button
               type="button"
+              disabled={!isDirty}
               onClick={() => {
+                if (!isDirty) return
                 onSave(draftEnabledIds)
                 onOpenChange(false)
               }}
