@@ -196,6 +196,7 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
             </p>
             <FilterChipEditor
               items={positiveKeywords}
+              blockedKeywords={negativeKeywords}
               onChange={setPositiveKeywords}
               addLabel="Add keyword"
             />
@@ -208,6 +209,7 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
             </p>
             <FilterChipEditor
               items={negativeKeywords}
+              blockedKeywords={positiveKeywords}
               onChange={setNegativeKeywords}
               exclude
               addLabel="Add exclude"

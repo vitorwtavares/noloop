@@ -26,7 +26,7 @@ export function CompanyAvatar({ name, className }: CompanyAvatarProps) {
     <span
       aria-hidden
       className={cn(
-        'inline-grid size-[24px] flex-shrink-0 place-items-center rounded-[5px] text-[12px] font-semibold text-white',
+        'inline-flex size-[24px] shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none font-semibold text-white',
         className,
       )}
       style={

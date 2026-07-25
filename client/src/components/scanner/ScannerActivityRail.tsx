@@ -4,6 +4,7 @@ import {
   toScanRailEntries,
   type ScanRailEntry,
 } from '@/components/scanner/scanLiveState'
+import { formatBoardFetchError } from '@/components/scanner/scannerUtils'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -36,7 +37,7 @@ function RailEntryDetail({ entry }: { entry: ScanRailEntry }) {
   if (entry.counts === null) {
     return (
       <p className="mt-[3px] text-[11.5px] leading-normal text-danger">
-        {entry.detail}
+        {formatBoardFetchError(entry.detail)}
       </p>
     )
   }
@@ -98,12 +99,12 @@ export function ScannerActivityRail({ activity, isScanning }: Props) {
               : 'No activity from your last scan.'}
           </p>
         ) : (
-          entries.map((entry, index) => (
+          entries.map((entry) => (
             <div
               key={entry.companyName}
               className="flex gap-[11px] border-b border-border-subtle px-4 py-[11px] last:border-b-0"
             >
-              <div className="flex flex-col items-center pt-[5px]">
+              <div className="flex flex-col items-center self-stretch pt-[5px]">
                 <span
                   aria-hidden="true"
                   className={cn(
@@ -111,12 +112,10 @@ export function ScannerActivityRail({ activity, isScanning }: Props) {
                     NODE_STYLES[entry.status],
                   )}
                 />
-                {index < entries.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className="-mb-[11px] w-px flex-1 bg-border-subtle"
-                  />
-                )}
+                <span
+                  aria-hidden="true"
+                  className="-mb-[11px] w-px flex-1 bg-border-subtle"
+                />
               </div>
 
               <div className="min-w-0 flex-1">

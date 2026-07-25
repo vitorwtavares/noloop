@@ -147,6 +147,7 @@ export function ScannerFiltersPanel({ savedFilters, onSaved }: Props) {
             </p>
             <FilterChipEditor
               items={filters.title.positive}
+              blockedKeywords={filters.title.negative}
               onChange={(positive) =>
                 void persist({
                   ...filters,
@@ -164,6 +165,7 @@ export function ScannerFiltersPanel({ savedFilters, onSaved }: Props) {
             </p>
             <FilterChipEditor
               items={filters.title.negative}
+              blockedKeywords={filters.title.positive}
               onChange={(negative) =>
                 void persist({
                   ...filters,

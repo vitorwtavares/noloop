@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 type Props = {
   items: string[]
   onChange: (items: string[]) => void
+  /** Keywords in the opposite title list — blocked to avoid match/exclude conflicts. */
+  blockedKeywords?: string[]
   exclude?: boolean
   addLabel: string
   disabled?: boolean
@@ -56,6 +58,7 @@ function ExcludeTag({
 export function FilterChipEditor({
   items,
   onChange,
+  blockedKeywords = [],
   exclude = false,
   addLabel,
   disabled = false,
@@ -77,6 +80,15 @@ export function FilterChipEditor({
 
     if (isDuplicateKeyword(items, value)) {
       toast.error('That keyword is already in the list.')
+      return
+    }
+
+    if (isDuplicateKeyword(blockedKeywords, value)) {
+      toast.error(
+        exclude
+          ? 'That keyword is already in your match list. Remove it there first if you want to exclude it.'
+          : 'That keyword is already in your exclude list. Remove it there first if you want to match it.',
+      )
       return
     }
 
