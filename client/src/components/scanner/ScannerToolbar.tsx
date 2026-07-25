@@ -6,6 +6,7 @@ type Props = {
   jobCount: number
   isScanning: boolean
   railOpen: boolean
+  activityLogDisabled?: boolean
   filtersOpen: boolean
   onToggleRail: () => void
   onToggleFilters: () => void
@@ -15,6 +16,7 @@ export function ScannerToolbar({
   jobCount,
   isScanning,
   railOpen,
+  activityLogDisabled = false,
   filtersOpen,
   onToggleRail,
   onToggleFilters,
@@ -35,8 +37,10 @@ export function ScannerToolbar({
           variant="outline"
           size="sm"
           aria-pressed={railOpen}
+          disabled={activityLogDisabled}
+          title={activityLogDisabled ? 'Run a scan to see activity' : undefined}
           onClick={onToggleRail}
-          className={cn(railOpen && 'border-brand/40')}
+          className={cn(railOpen && !activityLogDisabled && 'border-brand/40')}
         >
           <Activity size={14} />
           Activity log

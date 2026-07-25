@@ -126,6 +126,13 @@ export default function Scanner() {
 
   return (
     <ScannerMainView
+      companies={setupQuery.data.companies}
+      onCompaniesUpdated={(companies) => {
+        queryClient.setQueryData<ScannerSetupResponse>(
+          ['scanner', 'setup'],
+          (current) => (current ? { ...current, companies } : current),
+        )
+      }}
       savedFilters={savedFilters}
       onFiltersSaved={(preferences) => {
         queryClient.setQueryData<ScannerSetupResponse>(

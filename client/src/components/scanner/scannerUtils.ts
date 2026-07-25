@@ -1,4 +1,15 @@
-import type { ScannerFilters } from '@/api/scanner'
+import type { ScannerFilters, ScannerSetupCompany } from '@/api/scanner'
+
+export function scannerReadinessCounts(companies: ScannerSetupCompany[]) {
+  const scannable = companies.filter((company) =>
+    Boolean(company.careers_url?.trim()),
+  )
+
+  return {
+    readyCount: scannable.filter((company) => company.scanner_enabled).length,
+    missingCount: companies.length - scannable.length,
+  }
+}
 
 export const JOB_HIGHLIGHT_MS = 700
 
@@ -53,6 +64,37 @@ export function formatScanCompleteSummary(
   const errorLabel = errorsCount === 1 ? 'error' : 'errors'
   return `Scan complete: ${jobsEmitted} new ${jobLabel} found (${errorsCount} ${errorLabel})`
 }
+
+const HTTP_STATUS_LABELS: Record<number, string> = {
+  400: 'Bad request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not found',
+  408: 'Request timeout',
+  429: 'Too many requests',
+  500: 'Server error',
+  502: 'Bad gateway',
+  503: 'Service unavailable',
+  504: 'Gateway timeout',
+}
+
+/** Turns raw scanner fetch errors (e.g. "HTTP 404") into user-facing copy. */
+export function formatBoardFetchError(message: string): string {
+  const httpMatch = message.match(/^HTTP (\d{3})$/i)
+  if (httpMatch) {
+    const code = Number(httpMatch[1])
+    return HTTP_STATUS_LABELS[code] ?? `Request failed (${code})`
+  }
+
+  if (/^timeout after/i.test(message)) {
+    return 'Request timed out'
+  }
+
+  return message
+}
+
+export const SCAN_BOARD_ERROR_URL_TIP =
+  'Double-check the careers URL is correct in Applications.'
 
 export function workStyleFromScanner(
   value: string | null,

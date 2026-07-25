@@ -1,4 +1,4 @@
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ScannerJob } from '@/api/scanner'
 import {
@@ -6,15 +6,12 @@ import {
   SCAN_TABLE_HEAD_CELL,
 } from '@/components/scanner/scanTableStyles'
 import { cn } from '@/lib/utils'
-import { ScanTableSkeleton } from '@/components/scanner/ScanTableSkeleton'
 
 interface ScanResultsTableProps {
   jobs: ScannerJob[]
   importedUrls: Set<string>
   importingUrl: string | null
   highlightedJobUrls?: Set<string>
-  isLoading?: boolean
-  isScanning?: boolean
   onImport: (job: ScannerJob) => void
 }
 
@@ -23,28 +20,9 @@ export function ScanResultsTable({
   importedUrls,
   importingUrl,
   highlightedJobUrls,
-  isLoading = false,
-  isScanning = false,
   onImport,
 }: ScanResultsTableProps) {
-  if (isLoading) {
-    return <ScanTableSkeleton rows={4} columns={6} />
-  }
-
-  if (jobs.length === 0) {
-    return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        {isScanning ? (
-          <>
-            <Loader2 className="size-4 shrink-0 animate-spin" />
-            Matching roles will appear here as they are found.
-          </>
-        ) : (
-          'No matching jobs yet. Start a scan to find new openings.'
-        )}
-      </p>
-    )
-  }
+  if (jobs.length === 0) return null
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card">
