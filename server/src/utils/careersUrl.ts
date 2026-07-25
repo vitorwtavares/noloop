@@ -13,22 +13,7 @@ function hasPlausibleHostname(hostname: string): boolean {
   return labels.every((label) => labelPattern.test(label))
 }
 
-export function sanitizeUrl(raw: string): string | null {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  const withProtocol = /^https?:\/\//i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`
-  try {
-    const parsed = new URL(withProtocol)
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
-    return parsed.href
-  } catch {
-    return null
-  }
-}
-
-export function sanitizeCareersUrl(raw: string): string | null {
+export function normalizeCareersUrl(raw: string): string | null {
   const trimmed = raw.trim()
   if (!trimmed || /\s/.test(trimmed)) return null
 
@@ -44,10 +29,4 @@ export function sanitizeCareersUrl(raw: string): string | null {
   } catch {
     return null
   }
-}
-
-export function isValidCareersUrl(raw: string): boolean {
-  const trimmed = raw.trim()
-  if (!trimmed) return true
-  return sanitizeCareersUrl(trimmed) !== null
 }

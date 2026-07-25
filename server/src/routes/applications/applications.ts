@@ -180,6 +180,7 @@ router.put('/:id', async (req, res) => {
     work_style,
     visa_support,
     is_favorite,
+    scanner_enabled,
     date_applied,
     next_deadline,
     notes,
@@ -211,6 +212,7 @@ router.put('/:id', async (req, res) => {
   if (work_style !== undefined) update.work_style = work_style
   if (visa_support !== undefined) update.visa_support = visa_support
   if (is_favorite !== undefined) update.is_favorite = is_favorite
+  if (scanner_enabled !== undefined) update.scanner_enabled = scanner_enabled
   if (date_applied !== undefined) update.date_applied = date_applied
   if (next_deadline !== undefined) update.next_deadline = next_deadline
   if (notes !== undefined) update.notes = notes

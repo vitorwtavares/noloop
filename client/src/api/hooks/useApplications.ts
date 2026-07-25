@@ -29,6 +29,7 @@ export interface Application {
   work_style: 'remote' | 'hybrid' | 'on-site' | null
   visa_support: 'yes' | 'no' | 'unknown' | null
   is_favorite: boolean
+  scanner_enabled: boolean
   date_applied: string | null
   next_deadline: string | null
   notes: string | null
@@ -63,6 +64,7 @@ export type CreateApplicationPayload = {
   work_style?: 'remote' | 'hybrid' | 'on-site' | null
   visa_support?: 'yes' | 'no' | 'unknown' | null
   is_favorite?: boolean
+  scanner_enabled?: boolean
   date_applied?: string | null
   next_deadline?: string | null
   notes?: string | null
@@ -235,6 +237,7 @@ export function useCreateApplication() {
         work_style: payload.work_style ?? null,
         visa_support: payload.visa_support ?? null,
         is_favorite: payload.is_favorite ?? false,
+        scanner_enabled: payload.scanner_enabled ?? false,
         date_applied: payload.date_applied ?? null,
         next_deadline: payload.next_deadline ?? null,
         notes: payload.notes ?? null,
