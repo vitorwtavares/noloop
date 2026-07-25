@@ -4,7 +4,10 @@ import {
   toScanRailEntries,
   type ScanRailEntry,
 } from '@/components/scanner/scanLiveState'
-import { formatBoardFetchError } from '@/components/scanner/scannerUtils'
+import {
+  formatBoardFetchError,
+  formatScannerReason,
+} from '@/components/scanner/scannerUtils'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -29,7 +32,7 @@ function RailEntryDetail({ entry }: { entry: ScanRailEntry }) {
     return (
       <p className="mt-[3px] inline-flex items-center gap-1.5 text-[11px] text-warning">
         <SkipForward aria-hidden="true" className="size-3 shrink-0" />
-        {entry.detail}
+        {formatScannerReason(entry.detail)}
       </p>
     )
   }

@@ -78,6 +78,11 @@ const HTTP_STATUS_LABELS: Record<number, string> = {
   504: 'Gateway timeout',
 }
 
+/** Humanizes snake_case reason codes from the scanner API (e.g. `no_ats_detected`). */
+export function formatScannerReason(reason: string): string {
+  return reason.replaceAll('_', ' ')
+}
+
 /** Turns raw scanner fetch errors (e.g. "HTTP 404") into user-facing copy. */
 export function formatBoardFetchError(message: string): string {
   const httpMatch = message.match(/^HTTP (\d{3})$/i)

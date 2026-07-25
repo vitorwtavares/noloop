@@ -22,6 +22,7 @@ import {
   cooldownRetryUntil,
   formatRetryAfter,
   formatScanCompleteSummary,
+  formatScannerReason,
   JOB_HIGHLIGHT_MS,
 } from '@/components/scanner/scannerUtils'
 
@@ -225,7 +226,9 @@ export function useScannerScan({ snapshot, isLastScanPending }: Options) {
           currentCompany: null,
           skippedCount: current.skippedCount + 1,
         }))
-        setLiveScanStatus(`Skipped ${data.company_name} (${data.reason})`)
+        setLiveScanStatus(
+          `Skipped ${data.company_name} (${formatScannerReason(data.reason)})`,
+        )
         setLiveActivity((current) =>
           appendScanActivity(current, {
             company_name: data.company_name,
