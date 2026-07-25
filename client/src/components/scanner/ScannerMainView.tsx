@@ -7,9 +7,10 @@ import type {
   ScannerPreferences,
   ScannerSetupCompany,
 } from '@/api/scanner'
-import { updateScannerCompanies } from '@/api/scanner'
+import { updateScannerCareersUrls, updateScannerCompanies } from '@/api/scanner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ScannerActivityRail } from '@/components/scanner/ScannerActivityRail'
+import { ScannerAddUrlsModal } from '@/components/scanner/ScannerAddUrlsModal'
 import { ScannerCompaniesModal } from '@/components/scanner/ScannerCompaniesModal'
 import { ScannerErrorBanner } from '@/components/scanner/ScannerErrorBanner'
 import { ScannerFiltersPanel } from '@/components/scanner/ScannerFiltersPanel'
@@ -77,7 +78,9 @@ export function ScannerMainView({
   const [railOpen, setRailOpen] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [companiesModalOpen, setCompaniesModalOpen] = useState(false)
+  const [addUrlsModalOpen, setAddUrlsModalOpen] = useState(false)
   const [isSavingCompanies, setIsSavingCompanies] = useState(false)
+  const [isSavingUrls, setIsSavingUrls] = useState(false)
 
   const { readyCount, missingCount } = scannerReadinessCounts(companies)
   const enabledIds = useMemo(
@@ -129,11 +132,29 @@ export function ScannerMainView({
     }
   }
 
+  const handleCareersUrlsSave = async (
+    updates: Array<{ application_id: string; careers_url: string }>,
+  ) => {
+    setIsSavingUrls(true)
+    try {
+      const result = await updateScannerCareersUrls({ updates })
+      onCompaniesUpdated(result.companies)
+      toast.success('Careers URLs saved')
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save careers URLs'
+      toast.error(message)
+      throw err
+    } finally {
+      setIsSavingUrls(false)
+    }
+  }
+
   const scanButton = (
     <Button
       type="button"
       onClick={handleStartScan}
-      disabled={scanDisabled || isSavingCompanies}
+      disabled={scanDisabled || isSavingCompanies || isSavingUrls}
       aria-busy={isLoadingLastScan}
       aria-label={isLoadingLastScan ? 'Loading scanner' : scanButtonLabel}
       className="min-w-[12.5rem] justify-center"
@@ -230,6 +251,7 @@ export function ScannerMainView({
         readyCount={readyCount}
         missingCount={missingCount}
         onManageCompanies={() => setCompaniesModalOpen(true)}
+        onAddUrls={() => setAddUrlsModalOpen(true)}
       />
 
       {errorBanner && pageState === 'error' && (
@@ -288,6 +310,13 @@ export function ScannerMainView({
         enabledIds={enabledIds}
         onOpenChange={setCompaniesModalOpen}
         onSave={(nextEnabledIds) => void handleCompaniesSave(nextEnabledIds)}
+      />
+
+      <ScannerAddUrlsModal
+        open={addUrlsModalOpen}
+        companies={companies}
+        onOpenChange={setAddUrlsModalOpen}
+        onSave={handleCareersUrlsSave}
       />
     </div>
   )

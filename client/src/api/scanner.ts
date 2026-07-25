@@ -77,6 +77,10 @@ export type UpdateScannerCompaniesPayload = {
   enabled_application_ids: string[]
 }
 
+export type UpdateScannerCareersUrlsPayload = {
+  updates: Array<{ application_id: string; careers_url: string }>
+}
+
 export class ScanLimitError extends Error {
   retryAfterSeconds: number
 
@@ -257,6 +261,26 @@ export async function updateScannerCompanies(
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string }
     throw new Error(body.error ?? `Failed to update companies: ${res.status}`)
+  }
+
+  return res.json() as Promise<{ companies: ScannerSetupCompany[] }>
+}
+
+export async function updateScannerCareersUrls(
+  payload: UpdateScannerCareersUrlsPayload,
+): Promise<{ companies: ScannerSetupCompany[] }> {
+  const res = await fetch(getApiUrl('/api/scanner/careers-urls'), {
+    method: 'PATCH',
+    headers: {
+      ...(await getAuthHeaders()),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Failed to save careers URLs: ${res.status}`)
   }
 
   return res.json() as Promise<{ companies: ScannerSetupCompany[] }>

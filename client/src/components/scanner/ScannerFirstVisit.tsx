@@ -3,12 +3,14 @@ import { Loader2, Radar, SlidersHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   completeScannerSetup,
+  updateScannerCareersUrls,
   updateScannerPreferences,
   type ScannerFilters,
   type ScannerSetupCompany,
   type ScannerSetupResponse,
 } from '@/api/scanner'
 import { FilterChipEditor } from '@/components/scanner/FilterChipEditor'
+import { ScannerAddUrlsModal } from '@/components/scanner/ScannerAddUrlsModal'
 import { ScannerCompaniesModal } from '@/components/scanner/ScannerCompaniesModal'
 import { ScannerReadinessStrip } from '@/components/scanner/ScannerReadinessStrip'
 import { ScannerStatusIcon } from '@/components/scanner/ScannerStatusIcon'
@@ -19,6 +21,7 @@ import { Button } from '@/components/ui/button'
 type Props = {
   setup: ScannerSetupResponse
   onComplete: () => void
+  onCompaniesUpdated: (companies: ScannerSetupCompany[]) => void
 }
 
 function resolveInitialFilters(setup: ScannerSetupResponse): ScannerFilters {
@@ -75,8 +78,13 @@ function FilterSectionTitle({
   )
 }
 
-export function ScannerFirstVisit({ setup, onComplete }: Props) {
+export function ScannerFirstVisit({
+  setup,
+  onComplete,
+  onCompaniesUpdated,
+}: Props) {
   const initialFilters = useMemo(() => resolveInitialFilters(setup), [setup])
+  const [companies, setCompanies] = useState(setup.companies)
   const [positiveKeywords, setPositiveKeywords] = useState(
     initialFilters.title.positive,
   )
@@ -90,13 +98,13 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
     initialEnabledIds(setup.companies),
   )
   const [companiesModalOpen, setCompaniesModalOpen] = useState(false)
+  const [addUrlsModalOpen, setAddUrlsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const scannableCompanies = setup.companies.filter((company) =>
+  const scannableCompanies = companies.filter((company) =>
     Boolean(company.careers_url?.trim()),
   )
-  const missingCareersUrlCount =
-    setup.companies.length - scannableCompanies.length
+  const missingCareersUrlCount = companies.length - scannableCompanies.length
   const enabledScannableCount = scannableCompanies.filter((company) =>
     enabledIds.has(company.id),
   ).length
@@ -141,6 +149,29 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
     }
   }
 
+  const handleCareersUrlsSave = async (
+    updates: Array<{ application_id: string; careers_url: string }>,
+  ) => {
+    try {
+      const result = await updateScannerCareersUrls({ updates })
+      setCompanies(result.companies)
+      onCompaniesUpdated(result.companies)
+      setEnabledIds((current) => {
+        const next = new Set(current)
+        for (const update of updates) {
+          next.add(update.application_id)
+        }
+        return next
+      })
+      toast.success('Careers URLs saved')
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save careers URLs'
+      toast.error(message)
+      throw err
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -163,6 +194,7 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
         readyCount={enabledScannableCount}
         missingCount={missingCareersUrlCount}
         onManageCompanies={() => setCompaniesModalOpen(true)}
+        onAddUrls={() => setAddUrlsModalOpen(true)}
       />
 
       <section className="rounded-lg border border-border bg-card p-6">
@@ -263,10 +295,17 @@ export function ScannerFirstVisit({ setup, onComplete }: Props) {
 
       <ScannerCompaniesModal
         open={companiesModalOpen}
-        companies={setup.companies}
+        companies={companies}
         enabledIds={enabledIds}
         onOpenChange={setCompaniesModalOpen}
         onSave={setEnabledIds}
+      />
+
+      <ScannerAddUrlsModal
+        open={addUrlsModalOpen}
+        companies={companies}
+        onOpenChange={setAddUrlsModalOpen}
+        onSave={handleCareersUrlsSave}
       />
     </>
   )

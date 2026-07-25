@@ -77,6 +77,16 @@ export default function Scanner() {
     void queryClient.invalidateQueries({ queryKey: ['applications'] })
   }
 
+  const handleCompaniesUpdated = (
+    companies: ScannerSetupResponse['companies'],
+  ) => {
+    queryClient.setQueryData<ScannerSetupResponse>(
+      ['scanner', 'setup'],
+      (current) => (current ? { ...current, companies } : current),
+    )
+    void queryClient.invalidateQueries({ queryKey: ['applications'] })
+  }
+
   if (setupQuery.isPending) {
     return (
       <div className="flex flex-1 items-center justify-center px-16 py-24">
@@ -113,6 +123,7 @@ export default function Scanner() {
         <ScannerFirstVisit
           setup={setupQuery.data}
           onComplete={handleSetupComplete}
+          onCompaniesUpdated={handleCompaniesUpdated}
         />
       </div>
     )
@@ -127,12 +138,7 @@ export default function Scanner() {
   return (
     <ScannerMainView
       companies={setupQuery.data.companies}
-      onCompaniesUpdated={(companies) => {
-        queryClient.setQueryData<ScannerSetupResponse>(
-          ['scanner', 'setup'],
-          (current) => (current ? { ...current, companies } : current),
-        )
-      }}
+      onCompaniesUpdated={handleCompaniesUpdated}
       savedFilters={savedFilters}
       onFiltersSaved={(preferences) => {
         queryClient.setQueryData<ScannerSetupResponse>(
