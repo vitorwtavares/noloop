@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 
 export default function Scanner() {
   const queryClient = useQueryClient()
-  const [importingUrl, setImportingUrl] = useState<string | null>(null)
+  const [importingUrls, setImportingUrls] = useState<Set<string>>(new Set())
 
   const { data: applications = [] } = useApplications()
   const setupQuery = useQuery({
@@ -51,8 +51,8 @@ export default function Scanner() {
     return urls
   }, [applications])
 
-  const handleImport = async (job: ScannerJob) => {
-    setImportingUrl(job.job_url)
+  const importJob = async (job: ScannerJob) => {
+    setImportingUrls((current) => new Set(current).add(job.job_url))
     try {
       await createApplication.mutateAsync({
         company_name: job.company_name,
@@ -62,13 +62,70 @@ export default function Scanner() {
         status: 'prospect',
         work_style: workStyleFromScanner(job.work_style),
       })
-      toast.success(`Added ${job.job_name} at ${job.company_name} to tracker`)
+      return true
+    } finally {
+      setImportingUrls((current) => {
+        const next = new Set(current)
+        next.delete(job.job_url)
+        return next
+      })
+    }
+  }
+
+  const handleImport = async (job: ScannerJob) => {
+    try {
+      const added = await importJob(job)
+      if (added) {
+        toast.success(`Added ${job.job_name} at ${job.company_name} to tracker`)
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to add to tracker'
       toast.error(message)
+    }
+  }
+
+  const handleImportMany = async (jobs: ScannerJob[]) => {
+    if (jobs.length === 0) return
+
+    const jobUrls = jobs.map((job) => job.job_url)
+    setImportingUrls((current) => new Set([...current, ...jobUrls]))
+
+    let successCount = 0
+    try {
+      for (const job of jobs) {
+        try {
+          await createApplication.mutateAsync({
+            company_name: job.company_name,
+            job_name: job.job_name,
+            careers_url: job.careers_url,
+            job_url: job.job_url,
+            status: 'prospect',
+            work_style: workStyleFromScanner(job.work_style),
+          })
+          successCount += 1
+        } catch {
+          // Keep going so one failure doesn't block the rest of the batch.
+        }
+      }
+
+      if (successCount === jobs.length) {
+        toast.success(
+          successCount === 1
+            ? 'Added 1 job to tracker'
+            : `Added ${successCount} jobs to tracker`,
+        )
+      } else if (successCount > 0) {
+        toast.success(`Added ${successCount} of ${jobs.length} jobs to tracker`)
+      } else {
+        toast.error('Failed to add jobs to tracker')
+      }
     } finally {
-      setImportingUrl(null)
+      setImportingUrls((current) => {
+        const next = new Set(current)
+        for (const url of jobUrls) next.delete(url)
+        return next
+      })
     }
   }
 
@@ -161,9 +218,10 @@ export default function Scanner() {
       }
       highlightedJobUrls={scan.highlightedJobUrls}
       importedUrls={importedUrls}
-      importingUrl={importingUrl}
+      importingUrls={importingUrls}
       onStartScan={scan.startScan}
       onImport={handleImport}
+      onImportMany={handleImportMany}
     />
   )
 }
