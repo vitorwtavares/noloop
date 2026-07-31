@@ -50,9 +50,10 @@ type Props = {
   scanBlockedReason: string | null
   highlightedJobUrls: Set<string>
   importedUrls: Set<string>
-  importingUrl: string | null
+  importingUrls: Set<string>
   onStartScan: () => void
   onImport: (job: ScannerJob) => void
+  onImportMany: (jobs: ScannerJob[]) => void
 }
 
 export function ScannerMainView({
@@ -71,9 +72,10 @@ export function ScannerMainView({
   scanBlockedReason,
   highlightedJobUrls,
   importedUrls,
-  importingUrl,
+  importingUrls,
   onStartScan,
   onImport,
+  onImportMany,
 }: Props) {
   const [railOpen, setRailOpen] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -177,7 +179,7 @@ export function ScannerMainView({
 
   const resultsBody = (() => {
     if (isLoadingLastScan) {
-      return <ScanTableSkeleton rows={4} columns={6} />
+      return <ScanTableSkeleton rows={4} columns={7} />
     }
 
     if (jobs.length > 0) {
@@ -185,9 +187,10 @@ export function ScannerMainView({
         <ScanResultsTable
           jobs={jobs}
           importedUrls={importedUrls}
-          importingUrl={importingUrl}
+          importingUrls={importingUrls}
           highlightedJobUrls={highlightedJobUrls}
           onImport={onImport}
+          onImportMany={onImportMany}
         />
       )
     }
