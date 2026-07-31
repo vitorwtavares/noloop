@@ -545,6 +545,35 @@ router.patch('/careers-urls', async (req, res) => {
   return res.json({ companies: companies ?? [] })
 })
 
+router.delete('/shown-jobs', async (req, res) => {
+  const config = scannerConfig()
+  if (!config) {
+    return res.status(503).json({ error: 'Scanner is not configured' })
+  }
+
+  let scannerRes: Response
+  try {
+    scannerRes = await fetchScanner(
+      config,
+      `/v1/users/${encodeURIComponent(req.userId!)}/shown-jobs`,
+      { method: 'DELETE' },
+    )
+  } catch (err) {
+    const message = scannerFetchErrorMessage(err)
+    return res.status(502).json({ error: message })
+  }
+
+  if (!scannerRes.ok) {
+    const body = await scannerRes.text().catch(() => '')
+    return res.status(502).json({
+      error: body || `Scanner returned HTTP ${scannerRes.status}`,
+    })
+  }
+
+  const body = (await scannerRes.json()) as { deleted_count?: number }
+  return res.json({ deleted_count: body.deleted_count ?? 0 })
+})
+
 router.post('/setup', async (req, res) => {
   const config = scannerConfig()
   if (!config) {

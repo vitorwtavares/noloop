@@ -9,6 +9,7 @@ import Scanner from './pages/Scanner'
 import Settings from './pages/Settings'
 import { AccountSettings } from './components/settings/AccountSettings'
 import { BillingSettings } from './components/settings/BillingSettings'
+import { ScannerSettings } from './components/settings/ScannerSettings'
 import { UpgradeProvider } from './components/billing/UpgradeProvider'
 import LandingPage from './pages/landing/LandingPage'
 import RedirectToApp from './pages/landing/RedirectToApp'
@@ -61,6 +62,7 @@ export default function App() {
                       />
                       <Route path="account" element={<AccountSettings />} />
                       <Route path="billing" element={<BillingSettings />} />
+                      <Route path="scanner" element={<ScannerSettings />} />
                     </Route>
                   </Route>
                 </Route>
