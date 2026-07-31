@@ -1,10 +1,11 @@
 import { NavLink, Outlet } from 'react-router'
-import { CreditCard, UserRound } from 'lucide-react'
+import { CreditCard, Radar, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const sections = [
   { to: '/settings/account', label: 'Account', icon: UserRound },
   { to: '/settings/billing', label: 'Billing', icon: CreditCard },
+  { to: '/settings/scanner', label: 'Scanner', icon: Radar },
 ] as const
 
 export default function Settings() {

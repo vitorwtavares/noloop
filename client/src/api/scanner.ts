@@ -285,3 +285,23 @@ export async function updateScannerCareersUrls(
 
   return res.json() as Promise<{ companies: ScannerSetupCompany[] }>
 }
+
+export type ClearScannerShownHistoryResponse = {
+  deleted_count: number
+}
+
+export async function clearScannerShownHistory(): Promise<ClearScannerShownHistoryResponse> {
+  const res = await fetch(getApiUrl('/api/scanner/shown-jobs'), {
+    method: 'DELETE',
+    headers: await getAuthHeaders(),
+  })
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(
+      body.error ?? `Failed to clear shown history: ${res.status}`,
+    )
+  }
+
+  return res.json() as Promise<ClearScannerShownHistoryResponse>
+}
